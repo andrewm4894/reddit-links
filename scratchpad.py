@@ -19,6 +19,7 @@ gcp_credentials = service_account.Credentials.from_service_account_file(os.geten
 # inputs
 subreddit = 'machinelearning'
 submissions_time_filter = 'day'
+comments_n_max = 100
 gcs_bucket = 'reddit-links'
 gcs_filename = f"landing/df_links_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.csv"
 
@@ -35,7 +36,7 @@ links = []
 submissions = r.subreddit(subreddit).top(submissions_time_filter)
 for submission in submissions:
     links.append([submission.permalink, submission.url, submission.score, submission.upvote_ratio])
-    for comment in submission.comments.list():
+    for comment in submission.comments.list()[0:comments_n_max]:
         if 'href' in comment.body_html:
             soup = BeautifulSoup(comment.body_html, 'html.parser')
             for a in soup.find_all('a'):
@@ -59,14 +60,6 @@ gcs.get_bucket(gcs_bucket).blob(gcs_filename).upload_from_file(f, content_type='
 
 #%%
 
-comments = submission.comments.list()
-
 #%%
-
-comments[0].upvote_ratio
-
-#%%
-
-
 
 #%%
