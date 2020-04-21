@@ -1,10 +1,26 @@
 #%%
 
 import os
+from datetime import datetime
+from io import StringIO
 from dotenv import load_dotenv
 import praw
+from bs4 import BeautifulSoup
+import pandas as pd
+from google.cloud import storage
+from google.oauth2 import service_account
 
 load_dotenv()
+
+gcp_credentials = service_account.Credentials.from_service_account_file(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+
+#%%
+
+# inputs
+subreddit = 'machinelearning'
+submissions_time_filter = 'day'
+gcs_bucket = 'reddit-links'
+gcs_filename = f"landing/df_links_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.csv"
 
 #%%
 
@@ -14,22 +30,43 @@ r = praw.Reddit(
     client_secret=os.getenv("REDDIT_CLIENT_SECRET")
 )
 
-#%%
+links = []
 
-submissions = r.subreddit('machinelearning').top(limit=5)
-
-#%%
-
+submissions = r.subreddit(subreddit).top(submissions_time_filter)
 for submission in submissions:
-    print(submission.title, submission.url)
+    links.append([submission.permalink, submission.url, submission.score, submission.upvote_ratio])
+    for comment in submission.comments.list():
+        if 'href' in comment.body_html:
+            soup = BeautifulSoup(comment.body_html, 'html.parser')
+            for a in soup.find_all('a'):
+                link = a.get('href')
+                links.append([comment.permalink, link, comment.score, None])
+
+df_links = pd.DataFrame(links, columns=['permalink', 'link', 'score', 'upvote_ratio'])
+print(df_links.shape)
+print(df_links.head())
+
 
 #%%
 
-comments = submission.comments
+# save csv to gcs
+gcs = storage.Client(credentials=gcp_credentials)
+f = StringIO()
+df_links.to_csv(f)
+f.seek(0)
+gcs.get_bucket(gcs_bucket).blob(gcs_filename).upload_from_file(f, content_type='text/csv')
+
 
 #%%
 
-for comment in comments:
-    print(comment.body)
+comments = submission.comments.list()
+
+#%%
+
+comments[0].upvote_ratio
+
+#%%
+
+
 
 #%%
