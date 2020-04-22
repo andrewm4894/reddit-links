@@ -2,83 +2,115 @@
 
 import os
 from datetime import datetime
-from io import StringIO
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 import praw
 from bs4 import BeautifulSoup
 import pandas as pd
-from google.cloud import storage
-from google.oauth2 import service_account
 from airtable import Airtable
+from urlextract import URLExtract
 
 load_dotenv()
 
-gcp_credentials = service_account.Credentials.from_service_account_file(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-
-#%%
+##%%
 
 # inputs
 subreddit = 'machinelearning'
 submissions_time_filter = 'day'
 comments_n_max = 100
-gcs_bucket = 'reddit-links'
-gcs_filename = f"landing/df_links_{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.csv"
+airtable_base_key = os.environ['AIRTABLE_BASE_KEY']
+airtable_table_name = 'all-links'
 
-#%%
+##%%
 
+# create a url extractor
+extractor = URLExtract()
+
+# connect to reddit
 r = praw.Reddit(
     user_agent='reddit-links by /u/andrewm4894',
     client_id=os.getenv("REDDIT_CLIENT_ID"),
     client_secret=os.getenv("REDDIT_CLIENT_SECRET")
 )
 
+# create list to collect links into
 links = []
 
+# get reddit submissions
 submissions = r.subreddit(subreddit).top(submissions_time_filter)
+
+# process each submission
 for submission in submissions:
-    links.append([submission.permalink, submission.url, submission.score, submission.upvote_ratio])
+    link_num = 1
+    submission_date = pd.to_datetime(submission.created_utc, unit='s').strftime('%Y-%m-%d')
+    added_utc = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    link_id = f'{submission.id}_{link_num}'
+    links.append([
+        link_id, submission_date, submission.created_utc, added_utc, 'submission',
+        submission.title, submission.permalink, submission.url, submission.score, submission.upvote_ratio
+    ])
+    # try also get urls from text of the submission
+    submission_urls = extractor.find_urls(submission.selftext)
+    if len(submission_urls) > 0:
+        for submission_url in submission_urls:
+            link_num += 1
+            link_id = f'{submission.id}_{link_num}'
+            links.append([
+                link_id, submission_date, submission.created_utc, added_utc, 'submission', submission.title,
+                submission.permalink, submission_url, submission.score, submission.upvote_ratio
+            ])
+    # pull links from comments related to each submission using bs4
     for comment in submission.comments.list()[0:comments_n_max]:
         if 'href' in comment.body_html:
+            comment_date = pd.to_datetime(comment.created_utc, unit='s').strftime('%Y-%m-%d')
             soup = BeautifulSoup(comment.body_html, 'html.parser')
+            link_num = 0
+            # add a row for each link found by bs4
             for a in soup.find_all('a'):
+                link_num += 1
+                link_id = f'{comment.id}_{link_num}'
                 link = a.get('href')
-                links.append([comment.permalink, link, comment.score, 0])
+                links.append([
+                    link_id, comment_date, comment.created_utc, added_utc, 'comment', submission.title, comment.permalink, link,
+                    comment.score, 0
+                ])
 
-df_links = pd.DataFrame(links, columns=['permalink', 'link', 'score', 'upvote_ratio'])
-print(df_links.shape)
-print(df_links.head())
+# create a df for all links
+df_links = pd.DataFrame(
+    links,
+    columns=[
+        'id', 'created_date', 'created_utc', 'added_utc', 'type',
+        'title', 'permalink', 'link', 'score', 'upvote_ratio'
+    ]
+)
+df_links['permalink'] = 'https://www.reddit.com/' + df_links['permalink']
+df_links['created_utc'] = pd.to_datetime(df_links['created_utc'], unit='s').astype('str')
 
+# try get domain for each link
+domains = []
+for link in df_links.link:
+    try:
+        domain = urlparse(link).netloc
+    except:
+        domain = None
+        pass
+    domains.append(domain)
+df_links['domain'] = domains
+df_links['domain'] = df_links['domain'].str.lower().str.replace('www.', '')
 
-#%%
+print(f' ... df_links.shape = {df_links.shape} ...')
 
-# save csv to gcs
-gcs = storage.Client(credentials=gcp_credentials)
-f = StringIO()
-df_links.to_csv(f)
-f.seek(0)
-gcs.get_bucket(gcs_bucket).blob(gcs_filename).upload_from_file(f, content_type='text/csv')
+##%%
 
+# connect to airtable
+airtable = Airtable(airtable_base_key, airtable_table_name, api_key=os.environ['AIRTABLE_KEY'])
 
-#%%
-
-base_key = os.environ['AIRTABLE_BASE_KEY']
-table_name = 'r/machinelearning'
-
-airtable = Airtable(base_key, table_name, api_key=os.environ['AIRTABLE_KEY'])
-
+# append rows to airtable
 for row in df_links.to_dict(orient='rows'):
-    print(row)
     airtable.insert(row)
 
-
-records = airtable.get_all(maxRecords=5)
-df_air = pd.DataFrame.from_records((r['fields'] for r in records))
-
-print(df_air.head())
-
+print(' ... done ...')
 
 #%%
-
-
 
 #%%
