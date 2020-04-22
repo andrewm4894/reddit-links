@@ -66,11 +66,12 @@ base_key = os.environ['AIRTABLE_BASE_KEY']
 table_name = 'r/machinelearning'
 
 airtable = Airtable(base_key, table_name, api_key=os.environ['AIRTABLE_KEY'])
+airtable.insert({'Name': 'testttt', 'Notes': 'xxxccvvf'})
 
-
-records = airtable.get_all(maxRecords=2)
+records = airtable.get_all(maxRecords=5)
 
 df_air = pd.DataFrame.from_records((r['fields'] for r in records))
+
 print(df_air.head())
 
 
