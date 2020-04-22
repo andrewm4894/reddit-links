@@ -6,7 +6,7 @@ variable "pyfunc_info_dev" {
   type = map(string)
   default = {
     name    = "dev"
-    version = "v1"
+    version = "v2"
   }
 }
 

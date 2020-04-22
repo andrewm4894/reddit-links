@@ -4,7 +4,7 @@ import base64
 import logging
 
 
-def do_work(event, context):
+def dev(event, context):
     """Triggered from a message on a Cloud Pub/Sub topic.
     Args:
          event (dict): Event payload.
