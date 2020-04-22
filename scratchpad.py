@@ -60,6 +60,20 @@ gcs.get_bucket(gcs_bucket).blob(gcs_filename).upload_from_file(f, content_type='
 
 #%%
 
+from airtable import Airtable
+
+base_key = 'appVAHbbqDidqSsZ8'
+table_name = 'r/machinelearning'
+
+airtable = Airtable(base_key, table_name, api_key=os.environ['AIRTABLE_KEY'])
+
+
+records = airtable.get_all(maxRecords=2)
+
+df_air = pd.DataFrame.from_records((r['fields'] for r in records))
+print(df_air.head())
+
+
 #%%
 
 #%%
