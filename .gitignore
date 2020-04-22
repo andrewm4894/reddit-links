@@ -163,3 +163,4 @@ override.tf.json
 terraform.rc
 
 conf.tf
+/terraform/python-functions/zipped/
