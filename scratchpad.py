@@ -62,7 +62,7 @@ gcs.get_bucket(gcs_bucket).blob(gcs_filename).upload_from_file(f, content_type='
 
 from airtable import Airtable
 
-base_key = 'appVAHbbqDidqSsZ8'
+base_key = os.environ['AIRTABLE_BASE_KEY']
 table_name = 'r/machinelearning'
 
 airtable = Airtable(base_key, table_name, api_key=os.environ['AIRTABLE_KEY'])
