@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from google.cloud import storage
 from google.oauth2 import service_account
+from airtable import Airtable
 
 load_dotenv()
 
@@ -41,7 +42,7 @@ for submission in submissions:
             soup = BeautifulSoup(comment.body_html, 'html.parser')
             for a in soup.find_all('a'):
                 link = a.get('href')
-                links.append([comment.permalink, link, comment.score, None])
+                links.append([comment.permalink, link, comment.score, 0])
 
 df_links = pd.DataFrame(links, columns=['permalink', 'link', 'score', 'upvote_ratio'])
 print(df_links.shape)
@@ -60,21 +61,24 @@ gcs.get_bucket(gcs_bucket).blob(gcs_filename).upload_from_file(f, content_type='
 
 #%%
 
-from airtable import Airtable
-
 base_key = os.environ['AIRTABLE_BASE_KEY']
 table_name = 'r/machinelearning'
 
 airtable = Airtable(base_key, table_name, api_key=os.environ['AIRTABLE_KEY'])
-airtable.insert({'Name': 'testttt', 'Notes': 'xxxccvvf'})
+
+for row in df_links.to_dict(orient='rows'):
+    print(row)
+    airtable.insert(row)
+
 
 records = airtable.get_all(maxRecords=5)
-
 df_air = pd.DataFrame.from_records((r['fields'] for r in records))
 
 print(df_air.head())
 
 
 #%%
+
+
 
 #%%
