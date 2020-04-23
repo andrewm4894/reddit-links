@@ -116,6 +116,8 @@ def redditlinks(event, context):
     df_links['domain'] = domains
     df_links['domain'] = df_links['domain'].str.lower().str.replace('www.', '')
 
+    logging.info('... send to airtable ...')
+
     # connect to airtable
     airtable = Airtable(airtable_base_key, airtable_table_name, api_key=os.environ['AIRTABLE_KEY'])
     # append rows to airtable
