@@ -11,3 +11,18 @@ resource "google_cloud_scheduler_job" "dev" {
     data = base64encode("{\"example_key\":\"example_value\"}")
   }
 }
+
+
+############################################################
+## redditlinks_machinelearning
+############################################################
+
+resource "google_cloud_scheduler_job" "redditlinks_machinelearning" {
+  name     = "redditlinks_machinelearning"
+  schedule = "0 18 * * *"
+  pubsub_target {
+    topic_name = google_pubsub_topic.redditlinks.id
+    # data to pass to function being called
+    data = base64encode("{\"subreddit\":\"machinelearning\",\"time_filter\":\"day\",\"comments_max\":\"100\",\"airtable_name\":\"all-links\"}")
+  }
+}

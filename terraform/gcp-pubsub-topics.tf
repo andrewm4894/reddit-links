@@ -7,9 +7,9 @@ resource "google_pubsub_topic" "dev" {
 }
 
 ########################################
-## reddit_links
+## redditlinks
 ########################################
 
-resource "google_pubsub_topic" "reddit_links" {
-  name = "reddit_links"
+resource "google_pubsub_topic" "redditlinks" {
+  name = "redditlinks"
 }
