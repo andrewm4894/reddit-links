@@ -23,6 +23,6 @@ resource "google_cloud_scheduler_job" "redditlinks_machinelearning" {
   pubsub_target {
     topic_name = google_pubsub_topic.redditlinks.id
     # data to pass to function being called
-    data = base64encode("{\"subreddit\":\"machinelearning\",\"time_filter\":\"hour\",\"comments_max\":100,\"airtable_base\":\"appYRlbpZ7tlQnmbg\",\"airtable_table\":\"all-links\"}")
+    data = base64encode("{\"subreddit\":\"machinelearning\",\"time_filter\":\"day\",\"comments_max\":100,\"airtable_base\":\"appYRlbpZ7tlQnmbg\",\"airtable_table\":\"all-links\"}")
   }
 }

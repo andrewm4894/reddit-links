@@ -31,7 +31,7 @@ def redditlinks(event, context):
 
     subreddit = event_data_json['subreddit']
     submissions_time_filter = event_data_json['time_filter']
-    comments_max = event_data_json['time_filter']
+    comments_max = int(event_data_json['comments_max'])
     airtable_base_key = event_data_json['airtable_base']
     airtable_table_name = event_data_json['airtable_table']
 
@@ -54,6 +54,7 @@ def redditlinks(event, context):
     # process each submission
     for submission in submissions:
         logging.info(f'... submission.permalink = {submission.permalink} ...')
+        logging.info(f'... submission.url = {submission.url} ...')
         link_num = 1
         submission_date = pd.to_datetime(submission.created_utc, unit='s').strftime('%Y-%m-%d')
         added_utc = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -66,6 +67,7 @@ def redditlinks(event, context):
         submission_urls = extractor.find_urls(submission.selftext)
         if len(submission_urls) > 0:
             for submission_url in submission_urls:
+                logging.info(f'... submission_url = {submission_url} ...')
                 link_num += 1
                 link_id = f'{submission.id}_{link_num}'
                 links.append([
@@ -74,6 +76,7 @@ def redditlinks(event, context):
                 ])
         # pull links from comments related to each submission using bs4
         for comment in submission.comments.list()[0:comments_max]:
+            logging.info(f'... comment.permalink = {comment.permalink} ...')
             if 'href' in comment.body_html:
                 comment_date = pd.to_datetime(comment.created_utc, unit='s').strftime('%Y-%m-%d')
                 soup = BeautifulSoup(comment.body_html, 'html.parser')
@@ -83,6 +86,7 @@ def redditlinks(event, context):
                     link_num += 1
                     link_id = f'{comment.id}_{link_num}'
                     link = a.get('href')
+                    logging.info(f'... link = {link} ...')
                     links.append([
                         link_id, comment_date, comment.created_utc, added_utc, 'comment', submission.title,
                         comment.permalink, link,
@@ -111,6 +115,12 @@ def redditlinks(event, context):
         domains.append(domain)
     df_links['domain'] = domains
     df_links['domain'] = df_links['domain'].str.lower().str.replace('www.', '')
+
+    # connect to airtable
+    airtable = Airtable(airtable_base_key, airtable_table_name, api_key=os.environ['AIRTABLE_KEY'])
+    # append rows to airtable
+    for row in df_links.to_dict(orient='rows'):
+        airtable.insert(row)
 
     # result message
     result_message = f' ... df_links.shape = {df_links.shape} ...'
