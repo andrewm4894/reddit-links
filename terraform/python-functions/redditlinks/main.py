@@ -69,7 +69,7 @@ def redditlinks(event, context):
                     submission.permalink, submission.score, submission.upvote_ratio
                 ])
         # pull links from comments related to each submission using bs4
-        for comment in submission.comments.list()[0:comments_n_max]:
+        for comment in submission.comments.list()[0:comments_max]:
             if 'href' in comment.body_html:
                 comment_date = pd.to_datetime(comment.created_utc, unit='s').strftime('%Y-%m-%d')
                 soup = BeautifulSoup(comment.body_html, 'html.parser')
