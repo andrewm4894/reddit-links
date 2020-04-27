@@ -19,8 +19,6 @@ def redditlinks(event, context):
          context (google.cloud.functions.Context): Metadata for the event.
     """
 
-    print('... start ...')
-
     logging.info('... begin ...')
 
     # get data from event into a dict
