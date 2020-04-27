@@ -2,10 +2,9 @@
 
 links published to Airtables below:
 
-- Airtable Base - [r/MachineLearning/links](https://airtable.com/invite/l?inviteId=inv9K8uKC0SEi7nZu&inviteToken=fcd391ead6d81a814cdc67d27e75ca7e0fe95af0a6d983549f4d3db399bd72f6) - All the data and views (need sign up to Airtable)
+- Airtable Base - [r/MachineLearning/links](https://airtable.com/shrCe8ZWuLJpHNiG8) - All the data and views.
 - Airtable Views: 
-  - [youtube](https://airtable.com/shrfZ3ZQCSPpyNTXV)
-  - [arxiv](https://airtable.com/shrDuVykSDVVOVUi3)
-  - [twitter](https://airtable.com/shrADcPJKIe5hZsWM)
-  - [github](https://airtable.com/shrr2uiDYuwtaFhin)
-  - [medium](https://airtable.com/shrHtw5nrntjhYQhZ)
+  - [youtube](https://airtable.com/shrfM8xpQlzEchVWB)
+  - [arxiv](https://airtable.com/shrNMyw1d6BKS3R89)
+  - [twitter](https://airtable.com/shr7Yebzc0pjJLcMx)
+  - [github](https://airtable.com/shrRZmr0ObxrwnEWH)
