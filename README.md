@@ -1,6 +1,8 @@
 # reddit-links
 
-links published to Airtables below:
+Blog post: https://andrewm4894.com/2020/04/29/terraform-is-magic-r-machinelearning-links/
+
+Links published to Airtables below:
 
 - Airtable Base - [r/MachineLearning/links](https://airtable.com/shrCe8ZWuLJpHNiG8) - All the data and views.
 - Airtable Views: 
