@@ -65,7 +65,7 @@ variable "pyfunc_info_redditlinks" {
   type = map(string)
   default = {
     name    = "redditlinks"
-    version = "v9"
+    version = "v10"
   }
 }
 

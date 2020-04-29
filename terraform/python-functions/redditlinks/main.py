@@ -12,6 +12,84 @@ from airtable import Airtable
 from urlextract import URLExtract
 
 
+def update_airtable(df_links, airtable_base_key, airtable_table_name):
+    logging.info('... send to airtable ...')
+
+    # connect to airtable
+    airtable = Airtable(airtable_base_key, airtable_table_name, api_key=os.environ['AIRTABLE_KEY'])
+
+    inserted_count = 0
+    updated_count = 0
+
+    for i, row in df_links.iterrows():
+        airtable_records = airtable.search('link', row['link'])
+        if len(airtable_records) == 0:
+            logging.info('... new record ({})...'.format(row['link']))
+            record_fields = {
+                'link': row['link'],
+                'domain': row['domain'],
+                'first_seen': row['created_utc'],
+                'last_seen': row['created_utc'],
+                'first_added': row['last_seen'],
+                'last_added': row['last_seen'],
+                'times_seen': 1,
+                'score_avg': row['score'],
+                'score_min': row['score'],
+                'score_max': row['score'],
+                'score_sum': row['score'],
+                'title_list': row['title'],
+                'last_title': row['title'],
+                'permalink_list': row['permalink'],
+                'last_permalink': row['permalink'],
+            }
+            airtable.insert(record_fields)
+            logging.info('... inserted ...')
+            inserted_count += 1
+        elif len(airtable_records) > 0:
+            for record in airtable_records:
+                logging.info('... update record ({})...'.format(row['link']))
+                record_id = record['id']
+                old = airtable.get(record_id)['fields']
+                new_score_avg = (old['score_sum'] + row['score']) / (old['times_seen'] + 1)
+                new_score_min = old['score_min'] if old['score_min'] <= row['score'] else row['score']
+                new_score_max = old['score_max'] if old['score_max'] >= row['score'] else row['score']
+                new_score_sum = old['score_sum'] + row['score']
+                new_times_seen = old['times_seen'] + 1
+                if row['title'] not in old['title_list']:
+                    new_title_list = '{}|{}'.format(old['title_list'], row['title'])
+                else:
+                    new_title_list = old['title_list']
+                if row['permalink'] not in old['permalink_list']:
+                    new_permalink_list = '{}|{}'.format(old['permalink_list'], row['permalink'])
+                else:
+                    new_permalink_list = old['permalink_list']
+                record_fields = {
+                    'link': old['link'],
+                    'domain': old.get('domain', 'N/A'),
+                    'first_seen': old['first_seen'],
+                    'last_seen': row['created_utc'],
+                    'first_added': old['first_added'],
+                    'last_added': row['last_seen'],
+                    'times_seen': new_times_seen,
+                    'score_avg': new_score_avg,
+                    'score_min': new_score_min,
+                    'score_max': new_score_max,
+                    'score_sum': new_score_sum,
+                    'title_list': new_title_list,
+                    'last_title': row['title'],
+                    'permalink_list': new_permalink_list,
+                    'last_permalink': row['permalink'],
+                }
+                airtable.update(record_id, record_fields)
+                logging.info('... updated ...')
+                updated_count += 1
+
+    logging.info('... inserted_count = {} ...'.format(inserted_count))
+    logging.info('... updated_count = {} ...'.format(updated_count))
+
+    return inserted_count, updated_count
+
+
 def redditlinks(event, context):
     """Triggered from a message on a Cloud Pub/Sub topic.
     Args:
@@ -104,79 +182,8 @@ def redditlinks(event, context):
 
     logging.info(f' ... df_links.shape = {df_links.shape} ...')
 
-    logging.info('... send to airtable ...')
-
-    # connect to airtable
-    airtable = Airtable(airtable_base_key, airtable_table_name, api_key=os.environ['AIRTABLE_KEY'])
-
-    inserted_count = 0
-    updated_count = 0
-
-    for i, row in df_links.iterrows():
-        airtable_records = airtable.search('link', row['link'])
-        if len(airtable_records) == 0:
-            logging.info('... new record ({})...'.format(row['link']))
-            record_fields = {
-                'link': row['link'],
-                'domain': row['domain'],
-                'first_seen': row['created_utc'],
-                'last_seen': row['created_utc'],
-                'first_added': row['last_seen'],
-                'last_added': row['last_seen'],
-                'times_seen': 1,
-                'score_avg': row['score'],
-                'score_min': row['score'],
-                'score_max': row['score'],
-                'score_sum': row['score'],
-                'title_list': row['title'],
-                'last_title': row['title'],
-                'permalink_list': row['permalink'],
-                'last_permalink': row['permalink'],
-            }
-            airtable.insert(record_fields)
-            logging.info('... inserted ...')
-            inserted_count += 1
-        elif len(airtable_records) > 0:
-            for record in airtable_records:
-                logging.info('... update record ({})...'.format(row['link']))
-                record_id = record['id']
-                old = airtable.get(record_id)['fields']
-                new_score_avg = (old['score_sum'] + row['score']) / (old['times_seen'] + 1)
-                new_score_min = old['score_min'] if old['score_min'] <= row['score'] else row['score']
-                new_score_max = old['score_max'] if old['score_max'] >= row['score'] else row['score']
-                new_score_sum = old['score_sum'] + row['score']
-                new_times_seen = old['times_seen'] + 1
-                if row['title'] not in old['title_list']:
-                    new_title_list = '{}|{}'.format(old['title_list'], row['title'])
-                else:
-                    new_title_list = old['title_list']
-                if row['permalink'] not in old['permalink_list']:
-                    new_permalink_list = '{}|{}'.format(old['permalink_list'], row['permalink'])
-                else:
-                    new_permalink_list = old['permalink_list']
-                record_fields = {
-                    'link': old['link'],
-                    'domain': old.get('domain', 'N/A'),
-                    'first_seen': old['first_seen'],
-                    'last_seen': row['created_utc'],
-                    'first_added': old['first_added'],
-                    'last_added': row['last_seen'],
-                    'times_seen': new_times_seen,
-                    'score_avg': new_score_avg,
-                    'score_min': new_score_min,
-                    'score_max': new_score_max,
-                    'score_sum': new_score_sum,
-                    'title_list': new_title_list,
-                    'last_title': row['title'],
-                    'permalink_list': new_permalink_list,
-                    'last_permalink': row['permalink'],
-                }
-                airtable.update(record_id, record_fields)
-                logging.info('... updated ...')
-                updated_count += 1
-
-    logging.info('... inserted_count = {} ...'.format(inserted_count))
-    logging.info('... updated_count = {} ...'.format(updated_count))
+    # update airtable with results
+    inserted_count, updated_count = update_airtable(df_links, airtable_base_key, airtable_table_name)
 
     # result message
     result_message = f' ... df_links.shape = {df_links.shape} ...'
